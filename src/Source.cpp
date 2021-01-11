@@ -24,7 +24,8 @@ const WCHAR WINDOW_NAME[] = L"MFVideoEVR";
 HWND videoWindowHandle = NULL;
 HWND DesktopWindow = NULL;
 
-wchar_t file[] = L"C:\\Users\\evera\\Downloads\\final_5f8fa10806c42800a866a991_535365.mp4";
+LPWSTR file;
+LPCWSTR fileTypes = (LPCWSTR)L"Video Files\0*.MP4;*.MP3;*.MPEG;*.MPG;*.MOV;*.WMV;*.YUV;*.MTS\0";
 
 void drawToWindow();
 HWND FindDTWindow();
@@ -134,21 +135,20 @@ int main()
 {
     InitializeCriticalSection(&critSec);
 
-
     OPENFILENAME ofn;       // common dialog box structure
 
-        // Initialize OPENFILENAME
-    ZeroMemory(&ofn, sizeof(ofn));
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = NULL;
-    ofn.lpstrFile = file;
-    ofn.nMaxFile = sizeof(file);
-    ofn.lpstrFilter = L"Video Files\0*.MP4;*.MP3;*.MPEG;*.MPG;*.MOV;*.WMV;*.YUV;*.MTS\0";
-    ofn.nFilterIndex = 1;
-    ofn.lpstrFileTitle = NULL;
-    ofn.nMaxFileTitle = 0;
-    ofn.lpstrInitialDir = NULL;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+    // Initialize OPENFILENAME
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.lpstrFile = file;
+	ofn.lpstrFile[0] = '\0';
+	ofn.nMaxFile = sizeof(file);
+	ofn.lpstrFilter = "All\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
     if (GetOpenFileName(&ofn) == TRUE)
     {

@@ -330,116 +330,109 @@ void drawToWindow()
 {
     //backgroundColor = { 203, 192, 255, 255 };
 
-    for (;; )
+    while (play == true )
     {
-        if (play == TRUE)
+        EnterCriticalSection(&critSec);
+
+        if (m_spEngineEx->OnVideoStreamTick(&pts) == S_OK && play == TRUE)
         {
-            EnterCriticalSection(&critSec);
+            LeaveCriticalSection(&critSec);
 
-            if (m_spEngineEx->OnVideoStreamTick(&pts) == S_OK && play == TRUE)
+            //x = (VIDEO_WIDTH / cols);
+            //y = (VIDEO_HEIGHT / rows);
+
+            //y = (VIDEO_HEIGHT / cols);
+            //x = y * conversionWH;
+
+            if (spTextureDst)
             {
-                LeaveCriticalSection(&critSec);
-
-                //x = (VIDEO_WIDTH / cols);
-                //y = (VIDEO_HEIGHT / rows);
-
-                //y = (VIDEO_HEIGHT / cols);
-                //x = y * conversionWH;
-
-                if (spTextureDst)
+                for (int i = 0; i < rows; i++)
                 {
-                    for (int i = 0; i < rows; i++)
+                    for (int b = 0; b < cols; b++)
                     {
-                        for (int b = 0; b < cols; b++)
+                        try
                         {
-                            try
+                            if (play == TRUE)
                             {
-                                if (play == TRUE)
+                                rc = { x * b, y * i, x * b + x, y * i + y };
+                                //cout << "3";
+                                //m_spEngineEx->TransferVideoFrame(spTextureDst, NULL, &rc, &backgroundColor);
+                                //cout << "4";
+                                if (multi == 1)
                                 {
-                                    rc = { x * b, y * i, x * b + x, y * i + y };
+                                    transfer = thread(transferFrame);
+                                    transfer.join();
+                                    //transfer.detach();
+
+                                    //std::this_thread::sleep_for(std::chrono::nanoseconds(delay * 2));
+
+                                    //std::this_thread::sleep_for(std::chrono::nanoseconds(delay * 2 + 2));
+                                }
+                                else
+                                {
+                                    //std::this_thread::sleep_for(std::chrono::nanoseconds(delay));
                                     //cout << "3";
-                                    //m_spEngineEx->TransferVideoFrame(spTextureDst, NULL, &rc, &backgroundColor);
-                                    //cout << "4";
-                                    if (multi == 1)
-                                    {
-                                        transfer = thread(transferFrame);
-                                        transfer.join();
-                                        //transfer.detach();
-
-                                        //std::this_thread::sleep_for(std::chrono::nanoseconds(delay * 2));
-
-                                        //std::this_thread::sleep_for(std::chrono::nanoseconds(delay * 2 + 2));
-                                    }
-                                    else
-                                    {
-                                        //std::this_thread::sleep_for(std::chrono::nanoseconds(delay));
-                                        //cout << "3";
-                                        transferFrame();
-                                    }
+                                    transferFrame();
                                 }
                             }
-                            catch (...)
-                            {
-                                cout << "FRAME WAITING ERROR, PROCESSOR PROBLEM." << endl;
-                            }
-
                         }
-                    }
-
-                    try
-                    {
-                        if (play == TRUE)
+                        catch (...)
                         {
-                            //std::this_thread::sleep_for(std::chrono::nanoseconds(80));
-                            //swapChain->Present(1, 0);
-                            //spTextureDst->Release();
-                            //spTextureDst = nullptr;
-                            //cout << "6";
-                            if (multi == 1)
-                            {
-                                pres = thread(present);
-                                pres.join();
-                                //pres.detach();
+                            cout << "FRAME WAITING ERROR, PROCESSOR PROBLEM." << endl;
+                        }
 
-                                //std::this_thread::sleep_for(std::chrono::nanoseconds(10));
+                    }
+                }
 
-                                //std::this_thread::sleep_for(std::chrono::nanoseconds(2));
-                            }
-                            else
-                            {
-                                present();
-                            }
+                try
+                {
+                    if (play == TRUE)
+                    {
+                        //std::this_thread::sleep_for(std::chrono::nanoseconds(80));
+                        //swapChain->Present(1, 0);
+                        //spTextureDst->Release();
+                        //spTextureDst = nullptr;
+                        //cout << "6";
+                        if (multi == 1)
+                        {
+                            pres = thread(present);
+                            pres.join();
+                            //pres.detach();
+
+                            //std::this_thread::sleep_for(std::chrono::nanoseconds(10));
+
+                            //std::this_thread::sleep_for(std::chrono::nanoseconds(2));
+                        }
+                        else
+                        {
+                            present();
                         }
                     }
-                    catch (...)
-                    {
-                        cout << "PRESENT ERROR." << endl;
-                    }
                 }
-                else
+                catch (...)
                 {
-                    EnterCriticalSection(&critSec);
-
-                    swapChain->GetBuffer(0, IID_PPV_ARGS(&spTextureDst));
-
-                    LeaveCriticalSection(&critSec);
+                    cout << "PRESENT ERROR." << endl;
                 }
-
-                //std::this_thread::sleep_for(std::chrono::milliseconds(12));
-
-                //cout << "TRIED";
             }
             else
             {
-                LeaveCriticalSection(&critSec);
+                EnterCriticalSection(&critSec);
 
-                //cout << "FAILED";
-                std::this_thread::sleep_for(std::chrono::nanoseconds(delay));
+                swapChain->GetBuffer(0, IID_PPV_ARGS(&spTextureDst));
+
+                LeaveCriticalSection(&critSec);
             }
+
+            //std::this_thread::sleep_for(std::chrono::milliseconds(12));
+
+            //cout << "TRIED";
         }
         else
         {
-            break;
+            LeaveCriticalSection(&critSec);
+
+            //cout << "FAILED";
+            std::this_thread::sleep_for(std::chrono::nanoseconds(delay));
         }
     }
 

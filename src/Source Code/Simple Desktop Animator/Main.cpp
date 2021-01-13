@@ -24,7 +24,7 @@ const WCHAR WINDOW_NAME[] = L"MFVideoEVR";
 HWND videoWindowHandle = NULL;
 HWND DesktopWindow = NULL;
 
-wchar_t file[] = L"C:\\Users\\evera\\Downloads\\final_5f8fa10806c42800a866a991_535365.mp4";
+wchar_t file[500];
 
 void drawToWindow();
 HWND FindDTWindow();
@@ -167,151 +167,164 @@ int main()
 
         cout << "Audio (Decimal value, 0 - Silence, 1 - Full Volume)? ";
         cin >> audio;
+        
         while (audio > 1 || audio < 0)
         {
             cin >> audio;
         }
 
-        //cout << "Would you like Multi (1) or Single (0) Thread (Multi less glitchy > CPU, single more glitchy, < CPU)? ";
-        //cin >> multi;
+        cout << "Would you like Multi (1) or Single (0) Thread (Multi less glitchy > CPU, single more glitchy, < CPU)? ";
+        cin >> multi;
+
+        while (multi != 0 && multi != 1)
+        {
+            cout << "Invalid Input. Multi (1) or Single(1) Thread? ";
+            cin >> multi;
+        }
 
         cout << "Delay for frames (nanoseconds, default is 100)? ";
         cin >> delay;
 
-        CoInitializeEx(NULL, NULL);
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
-        CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)InitializeWindow, NULL, 0, NULL);
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
-        //videoWindowHandle = FindDTWindow();
-
-        DesktopWindow = FindDTWindow();
-
-        SetParent(videoWindowHandle, DesktopWindow);
-
-        IMFMediaEngineClassFactory* spFactory;
-        IMFAttributes* spAttributes;
-        MediaEngineNotify* spNotify;
-
-        MFStartup(MF_VERSION);
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
-        EnterCriticalSection(&critSec);
-
-        DXGI_SWAP_CHAIN_DESC sd;
-        ZeroMemory(&sd, sizeof(sd));
-        sd.BufferCount = 1;
-        sd.BufferDesc.Width = VIDEO_WIDTH;
-        sd.BufferDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
-        sd.BufferDesc.Height = VIDEO_HEIGHT;
-        sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        sd.BufferDesc.RefreshRate.Numerator = 60;
-        sd.BufferDesc.RefreshRate.Denominator = 1;
-        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        sd.OutputWindow = videoWindowHandle;
-        sd.SampleDesc.Count = 1;
-        sd.SampleDesc.Quality = 0;
-        sd.Windowed = TRUE;
-
-        HRESULT hr = S_OK;
-        D3D_FEATURE_LEVEL FeatureLevel;
-
-        ID3D11Device* device;
-        ID3D11DeviceContext* context;
-
-        D3D_FEATURE_LEVEL FeatureLevels = D3D_FEATURE_LEVEL_11_0;
-
-        hr = D3D11CreateDeviceAndSwapChain(NULL,
-            D3D_DRIVER_TYPE_HARDWARE,
-            NULL,
-            D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-            &FeatureLevels,
-            1,
-            D3D11_SDK_VERSION,
-            &sd,
-            &swapChain,
-            &device,
-            &FeatureLevel,
-            &context);
-
-        if (FAILED(hr))
+        if (CoInitializeEx(NULL, NULL) == S_OK)
         {
-            return hr;
+            std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+            CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)InitializeWindow, NULL, 0, NULL);
+            std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+            //videoWindowHandle = FindDTWindow();
+
+            DesktopWindow = FindDTWindow();
+
+            SetParent(videoWindowHandle, DesktopWindow);
+
+            IMFMediaEngineClassFactory* spFactory;
+            IMFAttributes* spAttributes;
+            MediaEngineNotify* spNotify;
+
+            MFStartup(MF_VERSION);
+            std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+            EnterCriticalSection(&critSec);
+
+            DXGI_SWAP_CHAIN_DESC sd;
+            ZeroMemory(&sd, sizeof(sd));
+            sd.BufferCount = 1;
+            sd.BufferDesc.Width = VIDEO_WIDTH;
+            sd.BufferDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
+            sd.BufferDesc.Height = VIDEO_HEIGHT;
+            sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            sd.BufferDesc.RefreshRate.Numerator = 60;
+            sd.BufferDesc.RefreshRate.Denominator = 1;
+            sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+            sd.OutputWindow = videoWindowHandle;
+            sd.SampleDesc.Count = 1;
+            sd.SampleDesc.Quality = 0;
+            sd.Windowed = TRUE;
+
+            HRESULT hr = S_OK;
+            D3D_FEATURE_LEVEL FeatureLevel;
+
+            ID3D11Device* device;
+            ID3D11DeviceContext* context;
+
+            D3D_FEATURE_LEVEL FeatureLevels = D3D_FEATURE_LEVEL_11_0;
+
+            hr = D3D11CreateDeviceAndSwapChain(NULL,
+                D3D_DRIVER_TYPE_HARDWARE,
+                NULL,
+                D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+                &FeatureLevels,
+                1,
+                D3D11_SDK_VERSION,
+                &sd,
+                &swapChain,
+                &device,
+                &FeatureLevel,
+                &context);
+
+            if (FAILED(hr))
+            {
+                return hr;
+            }
+
+            UINT resetToken;
+            IMFDXGIDeviceManager* deviceManager;
+            MFCreateDXGIDeviceManager(&resetToken, &deviceManager);
+
+            HANDLE deviceHandle;
+            deviceManager->OpenDeviceHandle(&deviceHandle);
+
+            deviceManager->LockDevice(deviceHandle, IID_PPV_ARGS(&device), TRUE);
+
+            deviceManager->ResetDevice(device, resetToken);
+
+            spNotify = new MediaEngineNotify();
+
+            CoCreateInstance(CLSID_MFMediaEngineClassFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&spFactory));
+
+            MFCreateAttributes(&spAttributes, 1);
+
+            spAttributes->SetUnknown(MF_MEDIA_ENGINE_CALLBACK, (IUnknown*)spNotify);
+            spAttributes->SetUnknown(MF_MEDIA_ENGINE_DXGI_MANAGER, (IUnknown*)deviceManager);
+            spAttributes->SetUINT32(MF_MEDIA_ENGINE_VIDEO_OUTPUT_FORMAT, format);
+
+            //spAttributes->SetUINT64(MF_MEDIA_ENGINE_PLAYBACK_HWND, (UINT64)videoWindowHandle);
+
+            const DWORD flags = MF_MEDIA_ENGINE_WAITFORSTABLE_STATE;
+            spFactory->CreateInstance(flags, spAttributes, &m_spMediaEngine);
+
+            m_spMediaEngine->QueryInterface(__uuidof(IMFMediaEngine), (void**)&m_spEngineEx);
+
+            m_spEngineEx->SetAutoPlay(TRUE);
+            m_spEngineEx->SetPreload(MF_MEDIA_ENGINE_PRELOAD_AUTOMATIC);
+            m_spEngineEx->SetLoop(TRUE);
+            m_spEngineEx->SetVolume(audio);
+            m_spEngineEx->SetSource(file);
+            //m_spEngineEx->SetDefaultPlaybackRate(3);
+            m_spEngineEx->Load();
+
+            swapChain->Present(1, 0);
+
+            LeaveCriticalSection(&critSec);
+
+            cout << "VIDEO STARTED" << endl << "PRESS ENTER TO END VIDEO PLAYBACK." << endl;
+
+            //IDXGIFactory1* idFactory;
+            //CreateDXGIFactory1(IID_PPV_ARGS(&idFactory));
+
+            //IDXGIAdapter* spAdapter;
+            //idFactory->EnumAdapters(0, &spAdapter);
+
+            //spAdapter->EnumOutputs(0, &spOutput);
+
+            thread playVid = thread(drawToWindow);
+
+            _getch();
+
+            //std::this_thread::sleep_for(std::chrono::seconds(16));
+
+            play = FALSE;
+            playVid.join();
+            DeleteCriticalSection(&critSec);
+
+            DestroyWindow(videoWindowHandle);
+            deviceManager->UnlockDevice(deviceHandle, 1);
+            deviceManager->CloseDeviceHandle(deviceHandle);
+            m_spEngineEx->Shutdown();
+            m_spMediaEngine->Shutdown();
+            m_spEngineEx->Release();
+            m_spMediaEngine->Release();
+            swapChain->Release();
+            device->Release();
+            deviceManager->Release();
+            MFShutdown();
+            CoUninitialize();
         }
-
-        UINT resetToken;
-        IMFDXGIDeviceManager* deviceManager;
-        MFCreateDXGIDeviceManager(&resetToken, &deviceManager);
-
-        HANDLE deviceHandle;
-        deviceManager->OpenDeviceHandle(&deviceHandle);
-
-        deviceManager->LockDevice(deviceHandle, IID_PPV_ARGS(&device), TRUE);
-
-        deviceManager->ResetDevice(device, resetToken);
-
-        spNotify = new MediaEngineNotify();
-
-        CoCreateInstance(CLSID_MFMediaEngineClassFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&spFactory));
-
-        MFCreateAttributes(&spAttributes, 1);
-
-        spAttributes->SetUnknown(MF_MEDIA_ENGINE_CALLBACK, (IUnknown*)spNotify);
-        spAttributes->SetUnknown(MF_MEDIA_ENGINE_DXGI_MANAGER, (IUnknown*)deviceManager);
-        spAttributes->SetUINT32(MF_MEDIA_ENGINE_VIDEO_OUTPUT_FORMAT, format);
-
-        //spAttributes->SetUINT64(MF_MEDIA_ENGINE_PLAYBACK_HWND, (UINT64)videoWindowHandle);
-
-        const DWORD flags = MF_MEDIA_ENGINE_WAITFORSTABLE_STATE;
-        spFactory->CreateInstance(flags, spAttributes, &m_spMediaEngine);
-
-        m_spMediaEngine->QueryInterface(__uuidof(IMFMediaEngine), (void**)&m_spEngineEx);
-
-        m_spEngineEx->SetAutoPlay(TRUE);
-        m_spEngineEx->SetPreload(MF_MEDIA_ENGINE_PRELOAD_AUTOMATIC);
-        m_spEngineEx->SetLoop(TRUE);
-        m_spEngineEx->SetVolume(audio);
-        m_spEngineEx->SetSource(file);
-        //m_spEngineEx->SetDefaultPlaybackRate(3);
-        m_spEngineEx->Load();
-
-        swapChain->Present(1, 0);
-
-        LeaveCriticalSection(&critSec);
-
-        cout << "VIDEO STARTED" << endl << "PRESS ENTER TO END VIDEO PLAYBACK." << endl;
-
-        //IDXGIFactory1* idFactory;
-        //CreateDXGIFactory1(IID_PPV_ARGS(&idFactory));
-
-        //IDXGIAdapter* spAdapter;
-        //idFactory->EnumAdapters(0, &spAdapter);
-
-        //spAdapter->EnumOutputs(0, &spOutput);
-
-        thread playVid = thread(drawToWindow);
-
-        _getch();
-
-        //std::this_thread::sleep_for(std::chrono::seconds(16));
-
-        play = FALSE;
-        playVid.join();
-        DeleteCriticalSection(&critSec);
-
-        DestroyWindow(videoWindowHandle);
-        deviceManager->UnlockDevice(deviceHandle, 1);
-        deviceManager->CloseDeviceHandle(deviceHandle);
-        m_spEngineEx->Shutdown();
-        m_spMediaEngine->Shutdown();
-        m_spEngineEx->Release();
-        m_spMediaEngine->Release();
-        swapChain->Release();
-        device->Release();
-        deviceManager->Release();
-        MFShutdown();
-        CoUninitialize();
+        else
+        {
+            cout << "ERROR INITIALIZING COM LIBRARY. :(";
+        }
     }
     else
     {
@@ -330,7 +343,7 @@ void drawToWindow()
 {
     //backgroundColor = { 203, 192, 255, 255 };
 
-    while (play == true )
+    while (play == true)
     {
         EnterCriticalSection(&critSec);
 
